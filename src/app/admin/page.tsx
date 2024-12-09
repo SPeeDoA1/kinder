@@ -8,7 +8,8 @@ import ChildrenList from '@/components/ChildrenList';
 import ParentList from '@/components/ParentList';
 import AttendanceManagement from '@/components/AttendanceManagement';
 import { NotificationMenu } from '@/components/NotificationMenu';
-import { Globe, LayoutDashboard, Users, Calendar, UserSquare2 } from 'lucide-react';
+import { Globe, LayoutDashboard, Users, Calendar, UserSquare2, UserMinus } from 'lucide-react';
+import PickupManagement from '@/components/PickupManagement';
 interface Notification {
   id: string;
   message: string;
@@ -59,7 +60,8 @@ const translations = {
     status: "Status",
     time: "Time",
     date: "Date",
-    actions: "Actions"
+    actions: "Actions",
+    pickup: "Pickup Management",
   },
   ar: {
     dashboard: "لوحة التحكم",
@@ -94,7 +96,8 @@ const translations = {
     status: "الحالة",
     time: "الوقت",
     date: "التاريخ",
-    actions: "الإجراءات"
+    actions: "الإجراءات",
+    pickup: "إدارة الاستلام",
   }
 };
 
@@ -290,6 +293,17 @@ export default function AdminPage() {
                   <Calendar className="h-5 w-5" />
                   {t.attendance}
                 </button>
+                <button
+                onClick={() => setActiveTab('pickup')}
+                className={`px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 font-comic transform hover:scale-105 ${
+                  activeTab === 'pickup'
+                    ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white shadow-lg'
+                    : 'bg-white/80 hover:bg-white text-gray-700 border-2 border-pink-200'
+                }`}
+              >
+                <UserMinus className="h-5 w-5" />
+                {t.pickup}
+              </button>
               </div>
 
               <NotificationMenu 
@@ -301,6 +315,7 @@ export default function AdminPage() {
             </div>
 
             <div className="mt-6">
+            {activeTab === 'pickup' && <PickupManagement />}
               {activeTab === 'dashboard' && (
                 <AdminDashboard 
                   notifications={notifications}

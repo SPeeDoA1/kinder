@@ -29,6 +29,8 @@ const QRScanner: React.FC<QRScannerProps> = ({
 
   const handleScanSuccess = useCallback(async (decodedText: string) => {
     // Prevent multiple simultaneous processing
+    console.log('Scanned QR Code:', decodedText); // Line 1 inside handleScanSuccess
+
     if (!isScanning.current || isProcessing.current) return;
     
     try {
@@ -43,6 +45,7 @@ const QRScanner: React.FC<QRScannerProps> = ({
       if (scannerRef.current) {
         await scannerRef.current.pause(true);
       }
+      console.log('Sending to /api/qr/validate:', decodedText); // Just before fetch call
 
       const response = await fetch('/api/qr/validate', {
         method: 'POST',
@@ -53,7 +56,8 @@ const QRScanner: React.FC<QRScannerProps> = ({
       });
   
       const data = await response.json();
-      
+      console.log('Validation response:', data); // After `const data = await response.json();`
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to validate QR code');
       }

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const { qrCode } = await request.json();
     console.log('2. Received request body:', { qrCode });
-    
+
     const today = new Date().toISOString().split('T')[0];
     if (!qrCode.includes(today)) {
       return NextResponse.json(
@@ -27,17 +27,16 @@ export async function POST(request: NextRequest) {
 
     // Start transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Check for recent scans by this parent
       const recentNotification = await tx.notification.findFirst({
         where: {
           parentId: session.user.id,
           createdAt: {
-            gte: new Date(Date.now() - SCAN_COOLDOWN)
-          }
+            gte: new Date(Date.now() - SCAN_COOLDOWN),
+          },
         },
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       });
 
       if (recentNotification) {
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest) {
 
       const parent = await tx.user.findUnique({
         where: { id: session.user.id },
-        include: { children: true }
+        include: { children: true },
       });
 
       if (!parent || parent.role !== 'PARENT') {
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest) {
       }
 
       const admin = await tx.user.findFirst({
-        where: { role: 'ADMIN' }
+        where: { role: 'ADMIN' },
       });
 
       if (!admin) {
@@ -66,21 +65,23 @@ export async function POST(request: NextRequest) {
 
       for (const child of parent.children) {
         const currentChild = await tx.child.findUnique({
-          where: { id: child.id }
+          where: { id: child.id },
         });
 
         if (!currentChild) continue;
 
-        const newStatus = currentChild.status === ChildStatus.PRESENT 
-          ? ChildStatus.PICKED_UP 
-          : ChildStatus.PRESENT;
-        
-        const action = newStatus === ChildStatus.PRESENT ? 'CHECK_IN' : 'PICK_UP';
+        const newStatus =
+          currentChild.status === ChildStatus.PRESENT
+            ? ChildStatus.PICKED_UP
+            : ChildStatus.PRESENT;
+
+        const action =
+          newStatus === ChildStatus.PRESENT ? 'CHECK_IN' : 'PICK_UP';
 
         // Update child status
         const updatedChild = await tx.child.update({
           where: { id: child.id },
-          data: { status: newStatus }
+          data: { status: newStatus },
         });
 
         // Create attendance record
@@ -90,8 +91,8 @@ export async function POST(request: NextRequest) {
             status: AttendanceStatus.PRESENT,
             date: currentTime,
             checkInTime: action === 'CHECK_IN' ? currentTime : undefined,
-            checkOutTime: action === 'PICK_UP' ? currentTime : undefined
-          }
+            checkOutTime: action === 'PICK_UP' ? currentTime : undefined,
+          },
         });
 
         // Create notification
@@ -104,23 +105,20 @@ export async function POST(request: NextRequest) {
             message: `${child.name} has been ${
               action === 'CHECK_IN' ? 'checked in' : 'picked up'
             } by ${parent.name}`,
-            timestamp: currentTime
-          }
+            timestamp: currentTime,
+          },
         });
 
         results.push({
           child: updatedChild,
           action,
-          time: currentTime,
-          message: action === 'CHECK_IN' 
-            ? 'Marked as present' 
-            : 'Marked as picked up'
+          time: currentTime
         });
       }
 
       return {
         parent,
-        results
+        results,
       };
     });
 
@@ -129,26 +127,27 @@ export async function POST(request: NextRequest) {
       message: 'Status updated successfully',
       data: {
         parent: {
-          name: result.parent.name
+          name: result.parent.name,
         },
-        children: result.results.map(res => ({
+        children: result.results.map((res) => ({
           name: res.child.name,
           status: res.action,
-          message: res.message,
           timestamp: res.time.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
-            hour12: true
-          })
-        }))
-      }
+            hour12: true,
+          }),
+        })),
+      },
     });
-
   } catch (error) {
     console.error('QR validation error:', error);
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Failed to process QR code' 
-    }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to process QR code',
+      },
+      { status: 400 }
+    );
   } finally {
     await prisma.$disconnect();
   }
